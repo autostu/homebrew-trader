@@ -1,0 +1,24 @@
+vertx:
+  redis:
+    host: localhost
+    port: 6379
+  proxy:
+    type: socks5
+    host: localhost
+    port: 1080
+
+accounts:
+  fcoin:
+    baseCurrency: btc
+    quoteCurrency: usdt
+    baseCurrencyScale: 4
+    quoteCurrencyScale: 2
+    key:
+    secret:
+
+markets:
+  fcoin:
+    baseCurrency: btc
+    quoteCurrency: usdt
+    baseCurrencyScale: 4
+    quoteCurrencyScale: 2
