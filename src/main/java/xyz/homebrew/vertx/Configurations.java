@@ -5,10 +5,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.io.Resources;
 import io.vertx.core.json.JsonObject;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Paths;
 
@@ -19,7 +19,6 @@ public final class Configurations {
   }
 
   public static JsonObject load() {
-
     String conf = System.getProperty("conf");
     URL url;
     try {
@@ -35,5 +34,15 @@ public final class Configurations {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  @Data
+  public static class AccountConfiguration {
+    String type;
+    String id;
+    String baseCurrency;
+    String quoteCurrency;
+    String key;
+    String secret;
   }
 }

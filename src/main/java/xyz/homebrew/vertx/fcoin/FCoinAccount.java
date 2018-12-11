@@ -1,4 +1,4 @@
-package xyz.homebrew.vertx;
+package xyz.homebrew.vertx.fcoin;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -9,7 +9,6 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.base.Strings;
 import com.google.common.hash.Hashing;
-import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
@@ -23,10 +22,10 @@ import lombok.Data;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
-import xyz.homebrew.core.Account;
 import xyz.homebrew.core.Balance;
 import xyz.homebrew.core.Market;
 import xyz.homebrew.core.Order;
+import xyz.homebrew.vertx.VertxAccount;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -37,7 +36,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 @Slf4j
-public class FCoinAccount extends AbstractVerticle implements Account {
+public class FCoinAccount extends VertxAccount {
 
   private static final String HOST = "https://api.fcoin.com";
 
@@ -55,11 +54,8 @@ public class FCoinAccount extends AbstractVerticle implements Account {
 
   int quoteCurrencyScale = 10;
 
-  private final Market hostingMarket;
+  private Market hostingMarket;
 
-  public FCoinAccount(Market hostingMarket) {
-    this.hostingMarket = hostingMarket;
-  }
 
   @Override
   public void start() {
@@ -93,6 +89,11 @@ public class FCoinAccount extends AbstractVerticle implements Account {
   @Override
   public Market getHostingMarket() {
     return hostingMarket;
+  }
+
+  @Override
+  public void setHostingMarket(Market market) {
+    hostingMarket = market;
   }
 
   @Override

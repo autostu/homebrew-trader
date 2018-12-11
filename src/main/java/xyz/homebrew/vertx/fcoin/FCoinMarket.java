@@ -1,6 +1,5 @@
-package xyz.homebrew.vertx;
+package xyz.homebrew.vertx.fcoin;
 
-import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
@@ -13,10 +12,10 @@ import lombok.Data;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
-import xyz.homebrew.core.Market;
 import xyz.homebrew.core.Orderbook;
 import xyz.homebrew.core.TradeHistory;
 import xyz.homebrew.core.Trader;
+import xyz.homebrew.vertx.VertxMarket;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -27,7 +26,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
 @Slf4j
-public class FCoinMarket extends AbstractVerticle implements Market {
+public class FCoinMarket extends VertxMarket {
 
   @Override
   public void start() {

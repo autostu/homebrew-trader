@@ -11,6 +11,8 @@ public interface Account {
 
   Market getHostingMarket();
 
+  void setHostingMarket(Market market);
+
   Pair<String, String> getSymbol();
 
   CompletableFuture<Balance> getBalance();

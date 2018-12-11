@@ -9,8 +9,8 @@ import io.vertx.core.net.ProxyOptions;
 import xyz.homebrew.core.Trader;
 import xyz.homebrew.trader.AlgowTrader;
 import xyz.homebrew.vertx.Configurations;
-import xyz.homebrew.vertx.FCoinAccount;
-import xyz.homebrew.vertx.FCoinMarket;
+import xyz.homebrew.vertx.fcoin.FCoinAccount;
+import xyz.homebrew.vertx.fcoin.FCoinMarket;
 
 public final class Bootstrap {
 
@@ -25,9 +25,12 @@ public final class Bootstrap {
     }
     FCoinMarket market = new FCoinMarket();
     vertx.deployVerticle(market, new DeploymentOptions().setConfig(config.getJsonObject("markets").getJsonObject("fcoin")));
-    FCoinAccount account = new FCoinAccount(market);
-    vertx.deployVerticle(account, new DeploymentOptions().setConfig(config.getJsonObject("accounts").getJsonObject("fcoin")));
-    Trader algow = new AlgowTrader(account);
-    market.registerTrader(algow);
+    FCoinAccount account = new FCoinAccount();
+    account.setHostingMarket(market);
+    vertx.deployVerticle(account, new DeploymentOptions().setConfig(config.getJsonObject("accounts").getJsonObject("fcoin")), ar -> {
+      Trader algow = new AlgowTrader();
+      algow.addAccount(account);
+      market.registerTrader(algow);
+    });
   }
 }
