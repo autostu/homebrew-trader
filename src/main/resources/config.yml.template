@@ -1,11 +1,11 @@
-vertx:
-  redis:
-    host: localhost
-    port: 6379
-  proxy:
-    type: socks5
-    host: localhost
-    port: 1080
+redis:
+  host: localhost
+  port: 6379
+
+proxy:
+  type: SOCKS5
+  host: localhost
+  port: 1080
 
 accounts:
   - type: fcoin
@@ -25,5 +25,7 @@ accounts:
 traders:
   - class: xyz.homebrew.trader.AlgowTrader
     accounts:
-      - &fcoin_main
-      - &fcoin_shadow
+      - fcoin_main
+      - fcoin_shadow
+    watches:
+      - fcoin

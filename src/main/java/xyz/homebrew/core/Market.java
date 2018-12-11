@@ -9,4 +9,6 @@ public interface Market {
   TradeHistory history();
 
   void registerTrader(Trader trader);
+
+  void subscribe(String symbol);
 }

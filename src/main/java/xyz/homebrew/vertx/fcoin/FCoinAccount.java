@@ -56,16 +56,19 @@ public class FCoinAccount extends VertxAccount {
 
   private Market hostingMarket;
 
+  @Override
+  public void init(JsonObject config) {
+    key = config.getString("key");
+    secret = config.getString("secret");
+    baseCurrencyType = config.getString("baseCurrency");
+    quoteCurrencyType = config.getString("quoteCurrency");
+    baseCurrencyScale = config.getInteger("baseCurrencyScale", 10);
+    quoteCurrencyScale = config.getInteger("quoteCurrencyScale", 10);
+  }
 
   @Override
   public void start() {
     Context context = vertx.getOrCreateContext();
-    key = context.config().getString("key");
-    secret = context.config().getString("secret");
-    baseCurrencyType = context.config().getString("baseCurrency");
-    quoteCurrencyType = context.config().getString("quoteCurrency");
-    baseCurrencyScale = context.config().getInteger("baseCurrencyScale", 10);
-    quoteCurrencyScale = context.config().getInteger("quoteCurrencyScale", 10);
     WebClientOptions options = new WebClientOptions()
         .setSsl(true)
         .setDefaultPort(443)

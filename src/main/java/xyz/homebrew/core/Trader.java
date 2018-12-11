@@ -1,5 +1,6 @@
 package xyz.homebrew.core;
 
+import java.util.Collection;
 import java.util.List;
 
 public interface Trader {
@@ -10,5 +11,5 @@ public interface Trader {
 
   List<Account> getAccounts();
 
-  void addAccount(Account... account);
+  void addAccounts(Collection<? extends Account> accounts);
 }
