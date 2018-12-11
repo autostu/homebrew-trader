@@ -50,9 +50,9 @@ public class FCoinAccount extends VertxAccount {
 
   private WebClient client;
 
-  int baseCurrencyScale = 10;
+  private int baseCurrencyScale = 10;
 
-  int quoteCurrencyScale = 10;
+  private int quoteCurrencyScale = 10;
 
   private Market hostingMarket;
 

@@ -44,8 +44,6 @@ public class FCoinMarket extends VertxMarket {
       options = options.setProxyOptions(proxyOptions);
     }
     HttpClient client = vertx.createHttpClient(options);
-////    int baseCurrencyScale = context.config().getInteger("baseCurrencyScale", 10);
-//    int quoteCurrencyScale = context.config().getInteger("quoteCurrencyScale", 10);
     client.websocket("/v2/ws", ws -> {
       long pingTimer = vertx.setPeriodic(15_000, l -> {
         Directive ping = new Directive()
@@ -82,10 +80,7 @@ public class FCoinMarket extends VertxMarket {
         List<Pair<BigDecimal, BigDecimal>> r = new LinkedList<>();
         Optional.ofNullable(array).ifPresent(x -> {
           for (int i = 0; i < x.size(); i += 2) {
-            r.add(Pair.of(new BigDecimal(x.getDouble(i)),
-//                    .setScale(quoteCurrencyScale, RoundingMode.UP),
-                new BigDecimal(x.getDouble(i + 1))
-//                    .setScale(baseCurrencyScale, RoundingMode.UP)
+            r.add(Pair.of(new BigDecimal(x.getDouble(i)), new BigDecimal(x.getDouble(i + 1))
             ));
           }
         });
