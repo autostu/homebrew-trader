@@ -1,7 +1,6 @@
 package xyz.homebrew.core;
 
-import java.util.Collection;
-import java.util.List;
+import java.util.Map;
 
 public interface Trader {
 
@@ -9,7 +8,7 @@ public interface Trader {
 
   void execute();
 
-  List<Account> getAccounts();
+  Account getAccount(String id);
 
-  void addAccounts(Collection<? extends Account> accounts);
+  void addAccounts(Map<String, Account> accounts);
 }

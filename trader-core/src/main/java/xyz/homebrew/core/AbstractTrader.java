@@ -1,22 +1,21 @@
 package xyz.homebrew.core;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public abstract class AbstractTrader implements Trader {
 
-  private final CopyOnWriteArrayList<Account> accounts = new CopyOnWriteArrayList<>();
+  private final Map<String, Account> accounts = new HashMap<>();
 
   public abstract void init();
 
   @Override
-  public void addAccounts(Collection<? extends Account> accounts) {
-    this.accounts.addAll(accounts);
+  public void addAccounts(Map<String, Account> accounts) {
+    this.accounts.putAll(accounts);
   }
 
   @Override
-  public List<Account> getAccounts() {
-    return accounts;
+  public Account getAccount(String id) {
+    return accounts.get(id);
   }
 }

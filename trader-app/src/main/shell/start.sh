@@ -18,7 +18,7 @@ for jar in $LIB_DIR/*.jar; do
     CLASSPATH="$CLASSPATH:$jar"
 done
 
-BOOTCLASS="xyz.homebrew.Bootstrap"
+BOOTCLASS="xyz.homebrew.app.Bootstrap"
 
 STDOUT="$PROC_HOME/trader.out"
 

@@ -25,7 +25,7 @@ public class AlgowTrader extends AbstractTrader {
   }
 
   private void syncAssets() {
-    getAccounts().get(0).getBalance().thenAccept(p -> {
+    getAccount("fcoin_main").getBalance().thenAccept(p -> {
       asset.set(p.getTradableBase());
       cash.set(p.getTradableQuote());
     });
@@ -76,14 +76,14 @@ public class AlgowTrader extends AbstractTrader {
       System.out.println("offers vibrate: " + evaluation[1]);
       System.out.println("bids difference: " + evaluation[2]);
       System.out.println("bids vibrate: " + evaluation[3]);
-      System.out.println("offers volume: " + getAccounts().get(0).getHostingMarket().offers().getVolume());
-      System.out.println("bids volume: " + getAccounts().get(0).getHostingMarket().bids().getVolume());
-      System.out.println("offers amount: " + getAccounts().get(0).getHostingMarket().offers().getTotalAmount());
-      System.out.println("bids amount: " + getAccounts().get(0).getHostingMarket().bids().getTotalAmount());
-      System.out.println("offers avg: " + getAccounts().get(0).getHostingMarket().offers().getAvgPrice());
-      System.out.println("bids avg: " + getAccounts().get(0).getHostingMarket().bids().getAvgPrice());
-      System.out.println("best offer: " + getAccounts().get(0).getHostingMarket().offers().getBest());
-      System.out.println("best bid: " + getAccounts().get(0).getHostingMarket().bids().getBest());
+      System.out.println("offers volume: " + getAccount("fcoin_main").getHostingMarket().offers().getVolume());
+      System.out.println("bids volume: " + getAccount("fcoin_main").getHostingMarket().bids().getVolume());
+      System.out.println("offers amount: " + getAccount("fcoin_main").getHostingMarket().offers().getTotalAmount());
+      System.out.println("bids amount: " + getAccount("fcoin_main").getHostingMarket().bids().getTotalAmount());
+      System.out.println("offers avg: " + getAccount("fcoin_main").getHostingMarket().offers().getAvgPrice());
+      System.out.println("bids avg: " + getAccount("fcoin_main").getHostingMarket().bids().getAvgPrice());
+      System.out.println("best offer: " + getAccount("fcoin_main").getHostingMarket().offers().getBest());
+      System.out.println("best bid: " + getAccount("fcoin_main").getHostingMarket().bids().getBest());
       System.out.println();
       return true;
     }
@@ -92,7 +92,7 @@ public class AlgowTrader extends AbstractTrader {
 
   @Override
   public void execute() {
-    Market market = getAccounts().get(0).getHostingMarket();
+    Market market = getAccount("fcoin_main").getHostingMarket();
     double trend = market.offers().getVolume().divide(market.bids().getVolume(), RoundingMode.UP).doubleValue();
     if (trend < 1) {
       // UP
@@ -114,7 +114,7 @@ public class AlgowTrader extends AbstractTrader {
     BigDecimal a = asset.get();
     BigDecimal c = cash.get();
 //    getAccount().getHostingMarket().offers().getBest();
-    Pair<BigDecimal, BigDecimal> bid = getAccounts().get(0).getHostingMarket().bids().getBest();
+    Pair<BigDecimal, BigDecimal> bid = getAccount("fcoin_main").getHostingMarket().bids().getBest();
     BigDecimal estimate = bid.getKey().multiply(a).add(c);
   }
 }
