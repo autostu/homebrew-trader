@@ -1,4 +1,4 @@
-package xyz.homebrew;
+package xyz.homebrew.app;
 
 import xyz.homebrew.vertx.VertxLauncher;
 

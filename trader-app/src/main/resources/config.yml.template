@@ -27,7 +27,7 @@ accounts:
     secret:
 
 traders:
-  - class: xyz.homebrew.trader.AlgowTrader
+  - class: xyz.homebrew.app.strategy.AlgowTrader
     accounts:
       - fcoin_main
       - fcoin_shadow

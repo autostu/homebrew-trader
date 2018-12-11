@@ -1,4 +1,4 @@
-package xyz.homebrew.vertx.fcoin;
+package xyz.homebrew.sdk.fcoin;
 
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
@@ -13,6 +13,7 @@ import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import xyz.homebrew.core.Orderbook;
+import xyz.homebrew.core.Sdk;
 import xyz.homebrew.core.TradeHistory;
 import xyz.homebrew.core.Trader;
 import xyz.homebrew.vertx.VertxMarket;
@@ -25,6 +26,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
 @Slf4j
+@Sdk("fcoin")
 public class FCoinMarket extends VertxMarket {
 
   @Override

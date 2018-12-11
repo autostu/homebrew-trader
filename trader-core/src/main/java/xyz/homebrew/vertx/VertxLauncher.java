@@ -41,9 +41,9 @@ public final class VertxLauncher {
         JsonObject config = accountsConfig.getJsonObject(i);
         Type type = Type.valueOf(config.getString("type"));
         if (!accounts.containsKey(config.getString("id"))) {
-          VertxAccount account = type.account.getConstructor().newInstance();
+          VertxAccount account = type.getAccount().getConstructor().newInstance();
           if (!markets.containsKey(config.getString("type"))) {
-            VertxMarket market = type.market.getConstructor().newInstance();
+            VertxMarket market = type.getMarket().getConstructor().newInstance();
             market.subscribe(config.getString("baseCurrency") + config.getString("quoteCurrency"));
             markets.put(config.getString("type"), market);
             account.setHostingMarket(market);
@@ -59,7 +59,7 @@ public final class VertxLauncher {
         VertxMarket market;
         if (!markets.containsKey(config.getString("type"))) {
           Type type = Type.valueOf(config.getString("type"));
-          market = type.market.getConstructor().newInstance();
+          market = type.getMarket().getConstructor().newInstance();
           markets.put(config.getString("type"), market);
         } else {
           market = markets.get(config.getString("type"));

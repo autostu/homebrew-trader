@@ -1,4 +1,4 @@
-package xyz.homebrew.vertx.fcoin;
+package xyz.homebrew.sdk.fcoin;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -25,6 +25,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import xyz.homebrew.core.Balance;
 import xyz.homebrew.core.Market;
 import xyz.homebrew.core.Order;
+import xyz.homebrew.core.Sdk;
 import xyz.homebrew.vertx.VertxAccount;
 
 import java.io.IOException;
@@ -36,6 +37,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 @Slf4j
+@Sdk("fcoin")
 public class FCoinAccount extends VertxAccount {
 
   private static final String HOST = "https://api.fcoin.com";

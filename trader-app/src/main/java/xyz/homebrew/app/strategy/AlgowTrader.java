@@ -1,6 +1,5 @@
-package xyz.homebrew.trader;
+package xyz.homebrew.app.strategy;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import xyz.homebrew.core.AbstractTrader;
 import xyz.homebrew.core.Market;
@@ -10,8 +9,7 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
-@Slf4j
-public final class AlgowTrader extends AbstractTrader {
+public class AlgowTrader extends AbstractTrader {
 
   static final int CAPACITY = 15;
 
