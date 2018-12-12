@@ -10,7 +10,7 @@ public abstract class AbstractTrader implements Trader {
   public abstract void init();
 
   @Override
-  public void addAccounts(Map<String, Account> accounts) {
+  public void addAccounts(Map<String, ? extends Account> accounts) {
     this.accounts.putAll(accounts);
   }
 

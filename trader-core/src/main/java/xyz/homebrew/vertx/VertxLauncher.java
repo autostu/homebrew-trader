@@ -82,11 +82,13 @@ public final class VertxLauncher {
         JsonObject config = tradersConfig.getJsonObject(i);
         AbstractTrader trader = (AbstractTrader) Class.forName(config.getString("class")).getConstructor()
             .newInstance();
-        Collection<VertxAccount> managedAccounts = config.getJsonArray("accounts").stream().map(a -> accounts.get(a))
-            .collect(Collectors.toList());
+        Map<String, VertxAccount> managedAccounts = config.getJsonArray("accounts").stream().map(a -> (String) a)
+            .collect(Collectors.toMap(a -> a, a -> accounts.get(a)));
         trader.addAccounts(managedAccounts);
+        @SuppressWarnings("rawtypes")
         CompletableFuture[] futs = new CompletableFuture[managedAccounts.size()];
-        CompletableFuture.allOf(managedAccounts.stream().map(VertxAccount::getDeployFuture).collect(Collectors.toList())
+        CompletableFuture.allOf(managedAccounts.values().stream().map(VertxAccount::getDeployFuture)
+            .collect(Collectors.toList())
             .toArray(futs))
             .thenAccept(v -> trader.init());
         config.getJsonArray("watches").stream().map(m -> (String) m)

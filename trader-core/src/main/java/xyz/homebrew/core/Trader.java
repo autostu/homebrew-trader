@@ -10,5 +10,5 @@ public interface Trader {
 
   Account getAccount(String id);
 
-  void addAccounts(Map<String, Account> accounts);
+  void addAccounts(Map<String, ? extends Account> accounts);
 }
