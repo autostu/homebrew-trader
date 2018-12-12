@@ -111,7 +111,7 @@ public class FCoinAccount extends VertxAccount {
     CompletableFuture<Balance> future = new CompletableFuture<>();
     prepare(HttpMethod.GET, "/v2/accounts/balance", null)
         .as(map(new TypeReference<JsonBody<List<FCoinBalance>>>() {
-        }))
+        }, future))
         .send(r -> {
           if (r.succeeded()) {
             List<FCoinBalance> balances = r.result().body();
@@ -149,7 +149,7 @@ public class FCoinAccount extends VertxAccount {
     CompletableFuture<Optional<Order>> future = new CompletableFuture<>();
     prepare(HttpMethod.GET, String.format("/v2/orders/%s", id), null)
         .as(map(new TypeReference<JsonBody<FCoinOrder>>() {
-        }))
+        }, future))
         .send(r -> {
           if (r.succeeded()) {
             FCoinOrder fcoin = r.result().body();
@@ -190,7 +190,7 @@ public class FCoinAccount extends VertxAccount {
     CompletableFuture<Void> future = new CompletableFuture<>();
     prepare(HttpMethod.POST, String.format("/v2/orders/%s/submit-cancel", id), null)
         .as(map(new TypeReference<JsonBody<Boolean>>() {
-        }))
+        }, future))
         .send(r -> {
           if (r.succeeded()) {
             future.complete(null);
@@ -204,6 +204,11 @@ public class FCoinAccount extends VertxAccount {
   private CompletableFuture<String> order(BigDecimal price, BigDecimal amount, Side side) {
     BigDecimal _price = price.setScale(quoteCurrencyScale, RoundingMode.DOWN);
     BigDecimal _amount = amount.setScale(baseCurrencyScale, RoundingMode.DOWN);
+    if (_amount.compareTo(BigDecimal.ZERO) <= 0) {
+      CompletableFuture<String> future = new CompletableFuture<>();
+      future.completeExceptionally(new IllegalArgumentException());
+      return future;
+    }
     CompletableFuture<String> future = new CompletableFuture<>();
     JsonObject req = new OrderReq().setAmount(_amount.toPlainString())
         .setPrice(_price.toPlainString())
@@ -212,7 +217,7 @@ public class FCoinAccount extends VertxAccount {
         .toJson();
     prepare(HttpMethod.POST, "/v2/orders", req)
         .as(map(new TypeReference<JsonBody<String>>() {
-        }))
+        }, future))
         .sendJsonObject(req, r -> {
           if (r.succeeded()) {
             String id = r.result().body();
@@ -306,20 +311,22 @@ public class FCoinAccount extends VertxAccount {
     mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
   }
 
-  private static <U> BodyCodec<U> map(TypeReference<JsonBody<U>> typeReference) {
+  private static <U> BodyCodec<U> map(TypeReference<JsonBody<U>> typeReference, CompletableFuture<?> future) {
     return BodyCodec.create(buf -> {
       byte[] raw = buf.getBytes();
       try {
         JsonBody<U> body = mapper.readValue(raw, typeReference);
         if (body.status != 0) {
           log.error("Unexpected FCoin response, {}", new String(raw));
-          throw new IllegalStateException("Illegal response: \n" + new String(raw));
+          future.completeExceptionally(new IllegalStateException("Illegal response: \n" + new String(raw)));
+          return null;
         }
         return body.data;
       } catch (IOException e) {
         log.error("IOException thrown when map resopnse to POJO", e);
-        throw new IllegalStateException("Illegal response: \n" + new String(raw));
+        future.completeExceptionally(new IllegalStateException("Illegal response: \n" + new String(raw)));
       }
+      return null;
     });
   }
 }
