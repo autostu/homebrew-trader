@@ -148,7 +148,8 @@ public class AlgowTrader extends AbstractTrader {
       if (cash.get().doubleValue() > 30) {
         BigDecimal paid = cash.get().multiply(BigDecimal.valueOf(0.5));
         BigDecimal buy = paid.divide(bestOfferPrice, RoundingMode.DOWN);
-        getAccount("fcoin_main").buy(bestOfferPrice, buy)
+        getAccount("fcoin_main").buy(bestOfferPrice.add(bestBidPrice)
+            .divide(BigDecimal.valueOf(2), RoundingMode.DOWN), buy)
             .handle((s, e) -> {
               syncAssets();
               return null;
@@ -167,10 +168,12 @@ public class AlgowTrader extends AbstractTrader {
       BigDecimal profit = amount.multiply(bestBidPrice).subtract(cash.get());
       if (profit.doubleValue() > 15) {
         BigDecimal sell = profit.divide(bestBidPrice, RoundingMode.DOWN);
-        getAccount("fcoin_main").sell(bestBidPrice, sell).handle((s, e) -> {
-          syncAssets();
-          return null;
-        });
+        getAccount("fcoin_main").sell(bestBidPrice.add(bestOfferPrice)
+            .divide(BigDecimal.valueOf(2), RoundingMode.UP), sell)
+            .handle((s, e) -> {
+              syncAssets();
+              return null;
+            });
         asset.set(amount.subtract(sell));
         log.info("sell to 50% = {} btc with price {}", sell, bestBidPrice);
       }
