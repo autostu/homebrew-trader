@@ -30,6 +30,7 @@ public final class VertxLauncher {
       JsonObject global = Configurations.load();
       if (global.containsKey("proxy")) {
         context.put("proxy", new ProxyOptions(global.getJsonObject("proxy")));
+        log.info("Using proxy config: {}", global.getJsonObject("proxy"));
       }
       JsonArray marketsConfig = global.getJsonArray("markets", new JsonArray());
       JsonArray accountsConfig = global.getJsonArray("accounts");
@@ -46,12 +47,14 @@ public final class VertxLauncher {
             VertxMarket market = type.getMarket().getConstructor().newInstance();
             market.subscribe(config.getString("baseCurrency") + config.getString("quoteCurrency"));
             markets.put(config.getString("type"), market);
+            log.info("Found market [{}]", config.getString("type"));
             account.setHostingMarket(market);
           } else {
             account.setHostingMarket(markets.get(config.getString("type")));
           }
-          account.init(config);
+          account.config(config);
           accounts.put(config.getString("id"), account);
+          log.info("Found account [{}] of [{}]", config.getString("id"), config.getString("type"));
         }
       }
       for (int i = 0; i < marketsConfig.size(); i++) {
@@ -61,6 +64,7 @@ public final class VertxLauncher {
           Type type = Type.valueOf(config.getString("type"));
           market = type.getMarket().getConstructor().newInstance();
           markets.put(config.getString("type"), market);
+          log.info("Found market [{}]", config.getString("type"));
         } else {
           market = markets.get(config.getString("type"));
         }
@@ -71,17 +75,28 @@ public final class VertxLauncher {
       }
       accounts.forEach((id, account) -> vertx.deployVerticle(account, ar -> {
         if (ar.succeeded()) {
-          account.completeDeployment();
+          CompletableFuture.runAsync(() -> {
+            try {
+              account.init();
+              account.completeDeployment();
+              log.info("Account [{}] ready", id);
+            } catch (Exception e) {
+              account.failDeployment(e);
+              log.error("Launch account [{}] failed", id, e);
+            }
+          });
         } else {
-          log.error("Counld't launch account {}", id);
+          log.error("Launch account [{}] failed", id);
           account.failDeployment(ar.cause());
         }
       }));
       Map<String, Set<Trader>> watches = new HashMap<>();
+      @SuppressWarnings("rawtypes")
+      CompletableFuture[] allTradersReady = new CompletableFuture[tradersConfig.size()];
       for (int i = 0; i < tradersConfig.size(); i++) {
+        CompletableFuture<Void> traderReady = new CompletableFuture<>();
         JsonObject config = tradersConfig.getJsonObject(i);
-        AbstractTrader trader = (AbstractTrader) Class.forName(config.getString("class")).getConstructor()
-            .newInstance();
+        AbstractTrader trader = (AbstractTrader) Class.forName(config.getString("class")).getConstructor().newInstance();
         Map<String, VertxAccount> managedAccounts = config.getJsonArray("accounts").stream().map(a -> (String) a)
             .collect(Collectors.toMap(a -> a, a -> accounts.get(a)));
         trader.addAccounts(managedAccounts);
@@ -90,17 +105,30 @@ public final class VertxLauncher {
         CompletableFuture.allOf(managedAccounts.values().stream().map(VertxAccount::getDeployFuture)
             .collect(Collectors.toList())
             .toArray(futs))
-            .thenAccept(v -> trader.init());
-        config.getJsonArray("watches").stream().map(m -> (String) m)
-            .forEach(m -> watches.computeIfAbsent(m, k -> new HashSet<>()).add(trader));
+            .whenComplete((v, e) -> {
+              if (e == null) {
+                trader.init();
+                config.getJsonArray("watches").stream().map(m -> (String) m)
+                    .forEach(m -> watches.computeIfAbsent(m, k -> new HashSet<>()).add(trader));
+                traderReady.complete(null);
+                log.info("Trader {} initialized with {} account(s) under management", config.getString("class"), managedAccounts.size());
+              }
+            });
+        allTradersReady[i] = traderReady;
       }
-      markets.forEach((type, market) -> vertx.deployVerticle(market, ar -> {
-        if (ar.succeeded()) {
-          watches.get(type).forEach(trader -> market.registerTrader(trader));
-        } else {
-          log.error("Couldn't launch market {}", type);
-        }
-      }));
+      CompletableFuture.allOf(allTradersReady).thenAccept(v -> {
+        markets.forEach((type, market) -> vertx.deployVerticle(market, ar -> {
+          if (ar.succeeded()) {
+            log.info("Market [{}] ready", type);
+            watches.get(type).forEach(t -> {
+              market.registerTrader(t);
+              log.info("Trader {} start watching market [{}]", t, type);
+            });
+          } else {
+            log.error("Launch market [{}] failed", type);
+          }
+        }));
+      });
     } catch (Exception e) {
       log.error("Launch homebrew failed", e);
     }

@@ -35,6 +35,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Sdk("fcoin")
@@ -59,13 +60,21 @@ public class FCoinAccount extends VertxAccount {
   private Market hostingMarket;
 
   @Override
-  public void init(JsonObject config) {
+  public void config(JsonObject config) {
     key = config.getString("key");
     secret = config.getString("secret");
     baseCurrencyType = config.getString("baseCurrency");
     quoteCurrencyType = config.getString("quoteCurrency");
     baseCurrencyScale = config.getInteger("baseCurrencyScale", 10);
     quoteCurrencyScale = config.getInteger("quoteCurrencyScale", 10);
+  }
+
+  @Override
+  public void init() throws Exception {
+    sync().get(1, TimeUnit.MINUTES);
+    vertx.setPeriodic(10_000, l -> {
+      sync();
+    });
   }
 
   @Override
@@ -91,6 +100,36 @@ public class FCoinAccount extends VertxAccount {
         .putHeader("FC-ACCESS-TIMESTAMP", String.valueOf(signature.getKey()));
   }
 
+  private CompletableFuture<Void> sync() {
+    CompletableFuture<Void> balanceFuture = new CompletableFuture<>();
+    prepare(HttpMethod.GET, "/v2/accounts/balance", null)
+        .as(map(new TypeReference<JsonBody<List<FCoinBalance>>>() {
+        }, balanceFuture))
+        .send(r -> {
+          if (r.succeeded()) {
+            List<FCoinBalance> balances = r.result().body();
+            Balance balance = new Balance();
+            for (FCoinBalance fcoin : balances) {
+              if (baseCurrencyType.equalsIgnoreCase(fcoin.currency)) {
+                balance.setFrozenBase(new BigDecimal(fcoin.frozen));
+                balance.setTradableBase(
+                    new BigDecimal(fcoin.available).setScale(baseCurrencyScale, RoundingMode.DOWN));
+              }
+              if (quoteCurrencyType.equalsIgnoreCase(fcoin.currency)) {
+                balance.setFrozenQuote(new BigDecimal(fcoin.frozen));
+                balance.setTradableQuote(
+                    new BigDecimal(fcoin.available).setScale(quoteCurrencyScale, RoundingMode.DOWN));
+              }
+            }
+            updateBalance(balance);
+            balanceFuture.complete(null);
+          } else {
+            balanceFuture.completeExceptionally(r.cause());
+          }
+        });
+    return CompletableFuture.allOf(balanceFuture);
+  }
+
   @Override
   public Market getHostingMarket() {
     return hostingMarket;
@@ -104,44 +143,6 @@ public class FCoinAccount extends VertxAccount {
   @Override
   public Pair<String, String> getSymbol() {
     return Pair.of(baseCurrencyType, quoteCurrencyType);
-  }
-
-  @Override
-  public CompletableFuture<Balance> getBalance() {
-    CompletableFuture<Balance> future = new CompletableFuture<>();
-    prepare(HttpMethod.GET, "/v2/accounts/balance", null)
-        .as(map(new TypeReference<JsonBody<List<FCoinBalance>>>() {
-        }, future))
-        .send(r -> {
-          if (r.succeeded()) {
-            List<FCoinBalance> balances = r.result().body();
-            Balance balance = new Balance();
-            for (FCoinBalance fcoin : balances) {
-              if (baseCurrencyType.equalsIgnoreCase(fcoin.currency)) {
-                balance.setBase(new BigDecimal(fcoin.available));
-                balance.setFrozenBase(new BigDecimal(fcoin.frozen));
-                balance.setTradableBase(
-                    new BigDecimal(fcoin.available).setScale(baseCurrencyScale, RoundingMode.DOWN));
-              }
-              if (quoteCurrencyType.equalsIgnoreCase(fcoin.currency)) {
-                balance.setQuote(new BigDecimal(fcoin.available));
-                balance.setFrozenQuote(new BigDecimal(fcoin.frozen));
-                balance.setTradableQuote(
-                    new BigDecimal(fcoin.available).setScale(quoteCurrencyScale, RoundingMode.DOWN));
-              }
-            }
-            future.complete(balance);
-          } else {
-            future.completeExceptionally(new IllegalStateException("Can't get assets from fcoin"));
-          }
-        });
-    return future;
-  }
-
-  @Override
-  public List<Order> getExecutingOrders() {
-    //TODO replace with active-orders api
-    return null;
   }
 
   @Override
@@ -177,12 +178,29 @@ public class FCoinAccount extends VertxAccount {
 
   @Override
   public CompletableFuture<String> buy(BigDecimal price, BigDecimal amount) {
-    return order(price, amount, Side.buy);
+    BigDecimal _price = price.setScale(quoteCurrencyScale, RoundingMode.DOWN);
+    BigDecimal _amount = amount.setScale(baseCurrencyScale, RoundingMode.DOWN);
+    Balance balance = new Balance();
+    BigDecimal vol = _price.multiply(_amount);
+    balance.setFrozenQuote(getBalance().getFrozenQuote().add(vol));
+    balance.setTradableQuote(getBalance().getTradableQuote().subtract(vol));
+    balance.setFrozenBase(getBalance().getFrozenBase());
+    balance.setTradableBase(getBalance().getTradableBase());
+    updateBalance(balance);
+    return order(_price, _amount, Side.buy);
   }
 
   @Override
   public CompletableFuture<String> sell(BigDecimal price, BigDecimal amount) {
-    return order(price, amount, Side.sell);
+    BigDecimal _price = price.setScale(quoteCurrencyScale, RoundingMode.DOWN);
+    BigDecimal _amount = amount.setScale(baseCurrencyScale, RoundingMode.DOWN);
+    Balance balance = new Balance();
+    balance.setFrozenQuote(getBalance().getFrozenQuote());
+    balance.setTradableQuote(getBalance().getTradableQuote());
+    balance.setFrozenBase(getBalance().getFrozenBase().add(_amount));
+    balance.setTradableBase(getBalance().getTradableBase().subtract(_amount));
+    updateBalance(balance);
+    return order(_price, _amount, Side.sell);
   }
 
   @Override
@@ -197,21 +215,20 @@ public class FCoinAccount extends VertxAccount {
           } else {
             future.completeExceptionally(new IllegalStateException("Can't cancel order from fcoin"));
           }
+          sync();
         });
     return future;
   }
 
   private CompletableFuture<String> order(BigDecimal price, BigDecimal amount, Side side) {
-    BigDecimal _price = price.setScale(quoteCurrencyScale, RoundingMode.DOWN);
-    BigDecimal _amount = amount.setScale(baseCurrencyScale, RoundingMode.DOWN);
-    if (_amount.compareTo(BigDecimal.ZERO) <= 0) {
+    if (amount.compareTo(BigDecimal.ZERO) <= 0) {
       CompletableFuture<String> future = new CompletableFuture<>();
       future.completeExceptionally(new IllegalArgumentException());
       return future;
     }
     CompletableFuture<String> future = new CompletableFuture<>();
-    JsonObject req = new OrderReq().setAmount(_amount.toPlainString())
-        .setPrice(_price.toPlainString())
+    JsonObject req = new OrderReq().setAmount(amount.toPlainString())
+        .setPrice(price.toPlainString())
         .setSymbol((baseCurrencyType + quoteCurrencyType).toLowerCase())
         .setSide(side.name())
         .toJson();
@@ -225,6 +242,7 @@ public class FCoinAccount extends VertxAccount {
           } else {
             future.completeExceptionally(new IllegalStateException("Can't ordering into fcoin"));
           }
+          sync();
         });
     return future;
   }
@@ -318,13 +336,17 @@ public class FCoinAccount extends VertxAccount {
         JsonBody<U> body = mapper.readValue(raw, typeReference);
         if (body.status != 0) {
           log.error("Unexpected FCoin response, {}", new String(raw));
-          future.completeExceptionally(new IllegalStateException("Illegal response: \n" + new String(raw)));
+          if (future != null) {
+            future.completeExceptionally(new IllegalStateException("Illegal response: \n" + new String(raw)));
+          }
           return null;
         }
         return body.data;
       } catch (IOException e) {
         log.error("IOException thrown when map resopnse to POJO", e);
-        future.completeExceptionally(new IllegalStateException("Illegal response: \n" + new String(raw)));
+        if (future != null) {
+          future.completeExceptionally(new IllegalStateException("Illegal response: \n" + new String(raw)));
+        }
       }
       return null;
     });

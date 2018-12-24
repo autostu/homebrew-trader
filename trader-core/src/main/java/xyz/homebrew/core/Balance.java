@@ -9,10 +9,6 @@ import java.math.BigDecimal;
 @ToString
 public final class Balance {
 
-  BigDecimal quote;
-
-  BigDecimal base;
-
   BigDecimal frozenBase;
 
   BigDecimal frozenQuote;

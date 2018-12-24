@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.io.Resources;
 import io.vertx.core.json.JsonObject;
-import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
@@ -26,7 +25,7 @@ public final class Configurations {
     } catch (Throwable t) {
       url = Resources.getResource("config.yml");
     }
-    log.info("using configuration {}", url);
+    log.info("Using configuration {}", url);
     try {
       ObjectMapper yamlReader = new ObjectMapper(new YAMLFactory());
       JsonNode json = yamlReader.readTree(url);
@@ -34,15 +33,5 @@ public final class Configurations {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-  }
-
-  @Data
-  public static class AccountConfiguration {
-    String type;
-    String id;
-    String baseCurrency;
-    String quoteCurrency;
-    String key;
-    String secret;
   }
 }

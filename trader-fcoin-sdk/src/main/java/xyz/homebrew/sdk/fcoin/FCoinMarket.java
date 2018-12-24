@@ -19,6 +19,8 @@ import xyz.homebrew.core.Trader;
 import xyz.homebrew.vertx.VertxMarket;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -61,7 +63,7 @@ public class FCoinMarket extends VertxMarket {
       vertx.setPeriodic(3_000, countdown -> {
         if (System.currentTimeMillis() - lastMessage.get() > 10_000) {
           try {
-            log.warn("no data received since {}, prepare to reconnect", lastMessage.get());
+            log.warn("no data received since {}, prepare to reconnect", Instant.ofEpochMilli(lastMessage.get()));
             vertx.cancelTimer(countdown);
             ws.close();
           } catch (IllegalStateException ignore) {

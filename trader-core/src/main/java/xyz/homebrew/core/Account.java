@@ -15,9 +15,11 @@ public interface Account {
 
   Pair<String, String> getSymbol();
 
-  CompletableFuture<Balance> getBalance();
+  Balance getBalance();
 
-  List<Order> getExecutingOrders();
+  List<Order> getExecutingOffers();
+
+  List<Order> getExecutingBids();
 
   CompletableFuture<Optional<Order>> query(String id);
 
