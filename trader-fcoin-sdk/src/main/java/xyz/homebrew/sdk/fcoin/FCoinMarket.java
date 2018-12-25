@@ -20,7 +20,6 @@ import xyz.homebrew.vertx.VertxMarket;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -63,7 +62,7 @@ public class FCoinMarket extends VertxMarket {
       vertx.setPeriodic(3_000, countdown -> {
         if (System.currentTimeMillis() - lastMessage.get() > 10_000) {
           try {
-            log.warn("no data received since {}, prepare to reconnect", Instant.ofEpochMilli(lastMessage.get()));
+            log.warn("No data received since {}, prepare to reconnect", Instant.ofEpochMilli(lastMessage.get()));
             vertx.cancelTimer(countdown);
             ws.close();
           } catch (IllegalStateException ignore) {
@@ -71,11 +70,11 @@ public class FCoinMarket extends VertxMarket {
         }
       });
       ws.exceptionHandler(err -> {
-        log.warn("Something went wrong during websocket handler", err);
+        log.warn("Something went wrong within [fcoin] websocket handler", err);
         ws.close();
       });
       ws.closeHandler(v -> {
-        log.info("websocket closed, stop pinging server");
+        log.info("Websocket closed, stop pinging [fcoin] server");
         vertx.cancelTimer(pingTimer);
         init();
       });
@@ -112,7 +111,7 @@ public class FCoinMarket extends VertxMarket {
         ws.writeTextMessage(trade.toString());
       }
     }, err -> {
-      log.warn("Unable to connect to fcoin");
+      log.warn("Unable to establish connection with fcoin");
       vertx.setTimer(10_000, v -> init());
     });
   }
@@ -142,7 +141,7 @@ public class FCoinMarket extends VertxMarket {
           }
         }
       } catch (Throwable t) {
-        log.warn("Fail to handle websocket message", t);
+        log.warn("Handle [fcoin] websocket message failed", t);
       }
     }
 

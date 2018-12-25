@@ -17,19 +17,9 @@ accounts:
     key:
     secret:
 
-  - type: fcoin
-    id: fcoin_shadow
-    baseCurrency: btc
-    quoteCurrency: usdt
-    baseCurrencyScale: 4
-    quoteCurrencyScale: 2
-    key:
-    secret:
-
 traders:
   - class: xyz.homebrew.app.strategy.AlgowTrader
     accounts:
       - fcoin_main
-      - fcoin_shadow
     watches:
       - fcoin
