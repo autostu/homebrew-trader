@@ -11,7 +11,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 
 @Slf4j
-public class AlgowTrader extends AbstractTrader {
+public class JavaTrader extends AbstractTrader {
 
   static final int CAPACITY = 15;
 

@@ -18,7 +18,7 @@ accounts:
     secret:
 
 traders:
-  - class: xyz.homebrew.app.strategy.AlgowTrader
+  - class: xyz.homebrew.app.strategy.ClojureTrader
     accounts:
       - fcoin_main
     watches:
