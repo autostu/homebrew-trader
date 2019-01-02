@@ -89,26 +89,26 @@ public class FCoinMarket extends VertxMarket {
         });
         return r;
       };
-      dispatcher.register("depth.L150.btcusdt",
+      ws.handler(dispatcher);
+      for (String symbol : symbols) {
+        dispatcher.register("depth.L150." + symbol,
           json -> Pair.of(mapper.apply(json.getJsonArray("asks")), mapper.apply(json.getJsonArray("bids"))),
           offersAndBids -> {
             offers.update(offersAndBids.getLeft());
             bids.update(offersAndBids.getRight());
-            traders.stream().filter(t -> t.spotted(this)).forEach(t -> t.execute());
+            traders.forEach(t -> t.onMarketDepthUpdate(symbol, this));
           });
-      // TODO register trade listener
-      ws.handler(dispatcher);
-      for (String symbol : symbols) {
         Directive depth = new Directive()
             .setCmd("sub")
             .setArgs(new JsonArray().add("depth.L150." + symbol))
             .setId("sub-depth-with-no-shit");
         ws.writeTextMessage(depth.toString());
-        Directive trade = new Directive()
-            .setCmd("sub")
-            .setArgs(new JsonArray().add("trade." + symbol))
-            .setId("sub-trade-with-no-shit");
-        ws.writeTextMessage(trade.toString());
+        // TODO register trade listener
+//        Directive trade = new Directive()
+//            .setCmd("sub")
+//            .setArgs(new JsonArray().add("trade." + symbol))
+//            .setId("sub-trade-with-no-shit");
+//        ws.writeTextMessage(trade.toString());
       }
     }, err -> {
       log.warn("Unable to establish connection with fcoin");

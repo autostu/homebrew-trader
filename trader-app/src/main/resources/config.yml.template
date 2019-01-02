@@ -10,16 +10,23 @@ proxy:
 accounts:
   - type: fcoin
     id: fcoin_main
-    baseCurrency: btc
-    quoteCurrency: usdt
-    baseCurrencyScale: 4
-    quoteCurrencyScale: 2
     key:
     secret:
+    contract:
+      base: btc
+      quote: usdt
+      amount: 0.01
+      scale: 2
+
+markets:
+  - type: fcoin
+    symbols:
+      - btcusdt
 
 traders:
-  - class: xyz.homebrew.app.strategy.ClojureTrader
+  - class: xyz.homebrew.app.strategy.JavaTrader
     accounts:
       - fcoin_main
     watches:
       - fcoin
+

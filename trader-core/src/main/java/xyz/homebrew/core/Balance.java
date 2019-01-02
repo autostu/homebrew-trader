@@ -9,11 +9,9 @@ import java.math.BigDecimal;
 @ToString
 public final class Balance {
 
-  BigDecimal frozenBase;
+  BigDecimal frozenCash;
 
-  BigDecimal frozenQuote;
+  BigDecimal tradableCash;
 
-  BigDecimal tradableBase;
-
-  BigDecimal tradableQuote;
+  int holdingContracts;
 }

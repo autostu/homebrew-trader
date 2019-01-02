@@ -1,13 +1,13 @@
 (ns xyz.homebrew.app.strategy.core
   (:gen-class
     :extends xyz.homebrew.core.AbstractTrader
-    :name xyz.homebrew.app.strategy.ClojureTrader))
+    :name xyz.homebrew.app.strategy.ClojureTrader)
+  (:import (xyz.homebrew.core Market)))
 
 (defn -init [this]
   (println "clojure init"))
 
-(defn -spotted [this market]
-  true)
-
-(defn -execute [this]
-  (println "clojure executed"))
+(defn -onMarketDepthUpdate [this symbol ^Market market]
+  (println "clojure found")
+  (-> market .offers .getVolume println)
+  (-> market .bids .getVolume println))

@@ -4,6 +4,7 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.json.JsonObject;
 import xyz.homebrew.core.Account;
 import xyz.homebrew.core.Balance;
+import xyz.homebrew.core.Contract;
 import xyz.homebrew.core.Order;
 
 import java.util.concurrent.CompletableFuture;
@@ -13,6 +14,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public abstract class VertxAccount extends AbstractVerticle implements Account {
 
   private Balance balance = new Balance();
+
+  protected Contract contract;
 
   protected final CopyOnWriteArrayList<Order> offers = new CopyOnWriteArrayList<>();
 
@@ -36,6 +39,16 @@ public abstract class VertxAccount extends AbstractVerticle implements Account {
 
   public void failDeployment(Throwable t) {
     deployFuture.completeExceptionally(t);
+  }
+
+  @Override
+  public Contract getContract() {
+    return contract;
+  }
+
+  @Override
+  public void setContract(Contract contract) {
+    this.contract = contract;
   }
 
   @Override

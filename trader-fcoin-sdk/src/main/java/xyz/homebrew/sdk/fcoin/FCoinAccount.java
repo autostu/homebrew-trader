@@ -22,10 +22,7 @@ import lombok.Data;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
-import xyz.homebrew.core.Balance;
-import xyz.homebrew.core.Market;
-import xyz.homebrew.core.Order;
-import xyz.homebrew.core.Sdk;
+import xyz.homebrew.core.*;
 import xyz.homebrew.vertx.VertxAccount;
 
 import java.io.IOException;
@@ -43,19 +40,11 @@ public class FCoinAccount extends VertxAccount {
 
   private static final String HOST = "https://api.fcoin.com";
 
-  private String baseCurrencyType;
-
-  private String quoteCurrencyType;
-
   private String key;
 
   private String secret;
 
   private WebClient client;
-
-  private int baseCurrencyScale = 10;
-
-  private int quoteCurrencyScale = 10;
 
   private Market hostingMarket;
 
@@ -63,10 +52,7 @@ public class FCoinAccount extends VertxAccount {
   public void config(JsonObject config) {
     key = config.getString("key");
     secret = config.getString("secret");
-    baseCurrencyType = config.getString("baseCurrency");
-    quoteCurrencyType = config.getString("quoteCurrency");
-    baseCurrencyScale = config.getInteger("baseCurrencyScale", 10);
-    quoteCurrencyScale = config.getInteger("quoteCurrencyScale", 10);
+    contract = new Contract(config.getJsonObject("contract"));
   }
 
   @Override
@@ -110,15 +96,12 @@ public class FCoinAccount extends VertxAccount {
             List<FCoinBalance> balances = r.result().body();
             Balance balance = new Balance();
             for (FCoinBalance fcoin : balances) {
-              if (baseCurrencyType.equalsIgnoreCase(fcoin.currency)) {
-                balance.setFrozenBase(new BigDecimal(fcoin.frozen));
-                balance.setTradableBase(
-                    new BigDecimal(fcoin.available).setScale(baseCurrencyScale, RoundingMode.DOWN));
+              if (contract.getBase().equalsIgnoreCase(fcoin.currency)) {
+                balance.setHoldingContracts(contract.units(new BigDecimal(fcoin.available)));
               }
-              if (quoteCurrencyType.equalsIgnoreCase(fcoin.currency)) {
-                balance.setFrozenQuote(new BigDecimal(fcoin.frozen));
-                balance.setTradableQuote(
-                    new BigDecimal(fcoin.available).setScale(quoteCurrencyScale, RoundingMode.DOWN));
+              if (contract.getQuote().equalsIgnoreCase(fcoin.currency)) {
+                balance.setFrozenCash(new BigDecimal(fcoin.frozen));
+                balance.setTradableCash(new BigDecimal(fcoin.available));
               }
             }
             updateBalance(balance);
@@ -138,11 +121,6 @@ public class FCoinAccount extends VertxAccount {
   @Override
   public void setHostingMarket(Market market) {
     hostingMarket = market;
-  }
-
-  @Override
-  public Pair<String, String> getSymbol() {
-    return Pair.of(baseCurrencyType, quoteCurrencyType);
   }
 
   @Override
@@ -177,29 +155,22 @@ public class FCoinAccount extends VertxAccount {
   }
 
   @Override
-  public CompletableFuture<String> buy(BigDecimal price, BigDecimal amount) {
-    BigDecimal _price = price.setScale(quoteCurrencyScale, RoundingMode.DOWN);
-    BigDecimal _amount = amount.setScale(baseCurrencyScale, RoundingMode.DOWN);
+  public CompletableFuture<String> buy(BigDecimal price, int units) {
+    BigDecimal _price = price.setScale(contract.getScale(), RoundingMode.DOWN);
+    BigDecimal _amount = contract.getAmount().multiply(BigDecimal.valueOf(units));
     Balance balance = new Balance();
-    BigDecimal vol = _price.multiply(_amount);
-    balance.setFrozenQuote(getBalance().getFrozenQuote().add(vol));
-    balance.setTradableQuote(getBalance().getTradableQuote().subtract(vol));
-    balance.setFrozenBase(getBalance().getFrozenBase());
-    balance.setTradableBase(getBalance().getTradableBase());
+    BigDecimal volume = _price.multiply(_amount);
+    balance.setFrozenCash(getBalance().getFrozenCash().add(volume));
+    balance.setTradableCash(getBalance().getTradableCash().subtract(volume));
+    balance.setHoldingContracts(getBalance().getHoldingContracts() + units);
     updateBalance(balance);
     return order(_price, _amount, Side.buy);
   }
 
   @Override
-  public CompletableFuture<String> sell(BigDecimal price, BigDecimal amount) {
-    BigDecimal _price = price.setScale(quoteCurrencyScale, RoundingMode.DOWN);
-    BigDecimal _amount = amount.setScale(baseCurrencyScale, RoundingMode.DOWN);
-    Balance balance = new Balance();
-    balance.setFrozenQuote(getBalance().getFrozenQuote());
-    balance.setTradableQuote(getBalance().getTradableQuote());
-    balance.setFrozenBase(getBalance().getFrozenBase().add(_amount));
-    balance.setTradableBase(getBalance().getTradableBase().subtract(_amount));
-    updateBalance(balance);
+  public CompletableFuture<String> sell(BigDecimal price, int units) {
+    BigDecimal _price = price.setScale(contract.getScale(), RoundingMode.DOWN);
+    BigDecimal _amount = contract.getAmount().multiply(BigDecimal.valueOf(units));
     return order(_price, _amount, Side.sell);
   }
 
@@ -229,7 +200,7 @@ public class FCoinAccount extends VertxAccount {
     CompletableFuture<String> future = new CompletableFuture<>();
     JsonObject req = new OrderReq().setAmount(amount.toPlainString())
         .setPrice(price.toPlainString())
-        .setSymbol((baseCurrencyType + quoteCurrencyType).toLowerCase())
+        .setSymbol(contract.symbol())
         .setSide(side.name())
         .toJson();
     prepare(HttpMethod.POST, "/v2/orders", req)

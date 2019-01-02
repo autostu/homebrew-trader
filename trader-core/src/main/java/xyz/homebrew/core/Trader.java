@@ -4,9 +4,7 @@ import java.util.Map;
 
 public interface Trader {
 
-  boolean spotted(Market active);
-
-  void execute();
+  void onMarketDepthUpdate(String symbol, Market active);
 
   Account getAccount(String id);
 

@@ -56,14 +56,13 @@ public class JavaTrader extends AbstractTrader {
   double[] evaluation = new double[4];
 
   @Override
-  public boolean spotted(Market active) {
+  public void onMarketDepthUpdate(String symbol, Market active) {
     buf.add(Pair.of(active.offers().getAvgPrice(), active.bids().getAvgPrice()));
     if (buf.size() > CAPACITY) {
       buf.remove(0);
       Balance balance = main.getBalance();
-      if (balance.getTradableBase() == null || balance.getTradableQuote() == null ||
-          balance.getTradableBase().compareTo(BigDecimal.ZERO) <= 0 && balance.getTradableQuote().compareTo(BigDecimal.ZERO) <= 0) {
-        return false;
+      if (balance.getTradableCash() == null || balance.getHoldingContracts() <= 0) {
+        return;
       }
       calculate();
       System.out.println("offers difference: " + evaluation[0]);
@@ -79,12 +78,6 @@ public class JavaTrader extends AbstractTrader {
       System.out.println("best offer: " + main.getHostingMarket().offers().getBest());
       System.out.println("best bid: " + main.getHostingMarket().bids().getBest());
       System.out.println();
-      return true;
     }
-    return false;
-  }
-
-  @Override
-  public void execute() {
   }
 }
