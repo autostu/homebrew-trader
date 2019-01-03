@@ -61,7 +61,7 @@ public class JavaTrader extends AbstractTrader {
     if (buf.size() > CAPACITY) {
       buf.remove(0);
       Balance balance = main.getBalance();
-      if (balance.getTradableCash() == null || balance.getHoldingContracts() <= 0) {
+      if (balance.getTradableCash() == null && balance.getHoldingContracts() <= 0) {
         return;
       }
       calculate();
