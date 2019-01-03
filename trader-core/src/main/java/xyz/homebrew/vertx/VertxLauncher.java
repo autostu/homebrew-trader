@@ -8,6 +8,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.ProxyOptions;
 import lombok.extern.slf4j.Slf4j;
 import xyz.homebrew.core.AbstractTrader;
+import xyz.homebrew.core.Market;
 import xyz.homebrew.core.Trader;
 
 import java.util.*;
@@ -24,7 +25,7 @@ public final class VertxLauncher {
     try {
       int cpu = Runtime.getRuntime().availableProcessors();
       VertxOptions options = new VertxOptions().setWorkerPoolSize(cpu).setEventLoopPoolSize(cpu)
-          .setBlockedThreadCheckInterval(3_600_000);
+              .setBlockedThreadCheckInterval(3_600_000);
       Vertx vertx = Vertx.vertx(options);
       Context context = vertx.getOrCreateContext();
       JsonObject global = Configurations.load();
@@ -32,47 +33,36 @@ public final class VertxLauncher {
         context.put("proxy", new ProxyOptions(global.getJsonObject("proxy")));
         log.info("Using proxy config: {}", global.getJsonObject("proxy"));
       }
-      JsonArray marketsConfig = global.getJsonArray("markets", new JsonArray());
-      JsonArray accountsConfig = global.getJsonArray("accounts");
       JsonArray tradersConfig = global.getJsonArray("traders");
+
+      List<MarketConfiguration> marketConfigurations = global.getJsonArray("markets", new JsonArray())
+              .stream().map(o -> new MarketConfiguration((JsonObject) o)).collect(Collectors.toList());
+      List<AccountConfiguration> accountConfigurations = global.getJsonArray("accounts", new JsonArray())
+              .stream().map(o -> new AccountConfiguration((JsonObject) o)).collect(Collectors.toList());
 
       Map<String, VertxAccount> accounts = new HashMap<>();
       Map<String, VertxMarket> markets = new HashMap<>();
-      for (int i = 0; i < accountsConfig.size(); i++) {
-        JsonObject config = accountsConfig.getJsonObject(i);
-        Type type = Type.valueOf(config.getString("type"));
-        if (!accounts.containsKey(config.getString("id"))) {
-          VertxAccount account = type.getAccount().getConstructor().newInstance();
-          if (!markets.containsKey(config.getString("type"))) {
-            VertxMarket market = type.getMarket().getConstructor().newInstance();
-            market.subscribe(config.getString("baseCurrency") + config.getString("quoteCurrency"));
-            markets.put(config.getString("type"), market);
-            log.info("Found market [{}]", config.getString("type"));
-            account.setHostingMarket(market);
-          } else {
-            account.setHostingMarket(markets.get(config.getString("type")));
-          }
-          account.config(config);
-          accounts.put(config.getString("id"), account);
-          log.info("Found account [{}] of [{}]", config.getString("id"), config.getString("type"));
-        }
+
+      for (MarketConfiguration config : marketConfigurations) {
+        VertxMarket market = config.getType().getMarket().getConstructor().newInstance();
+        config.symbols.forEach(s -> market.subscribe(s));
+        markets.put(config.getType().getId(), market);
+        log.info("Found market [{}]", config.getType().getId());
       }
-      for (int i = 0; i < marketsConfig.size(); i++) {
-        JsonObject config = marketsConfig.getJsonObject(i);
-        VertxMarket market;
-        if (!markets.containsKey(config.getString("type"))) {
-          Type type = Type.valueOf(config.getString("type"));
-          market = type.getMarket().getConstructor().newInstance();
-          markets.put(config.getString("type"), market);
-          log.info("Found market [{}]", config.getString("type"));
-        } else {
-          market = markets.get(config.getString("type"));
+
+      for (AccountConfiguration config : accountConfigurations) {
+        VertxAccount account = config.getType().getAccount().getConstructor().newInstance();
+        account.config(config);
+        Market hostingMarket = markets.get(config.getType().getId());
+        if (hostingMarket == null) {
+          log.error("Couldn't load market configuration of [{}]");
+          throw new IllegalStateException("market config is absent");
         }
-        JsonArray symbols = config.getJsonArray("symbols");
-        for (int j = 0; j < symbols.size(); j++) {
-          market.subscribe(symbols.getString(j));
-        }
+        account.setHostingMarket(hostingMarket);
+        accounts.put(config.getId(), account);
+        log.info("Found account [{}] of [{}]", config.getId(), config.getType().getId());
       }
+
       accounts.forEach((id, account) -> vertx.deployVerticle(account, ar -> {
         if (ar.succeeded()) {
           CompletableFuture.runAsync(() -> {
@@ -98,22 +88,22 @@ public final class VertxLauncher {
         JsonObject config = tradersConfig.getJsonObject(i);
         AbstractTrader trader = (AbstractTrader) Class.forName(config.getString("class")).getConstructor().newInstance();
         Map<String, VertxAccount> managedAccounts = config.getJsonArray("accounts").stream().map(a -> (String) a)
-            .collect(Collectors.toMap(a -> a, a -> accounts.get(a)));
+                .collect(Collectors.toMap(a -> a, a -> accounts.get(a)));
         trader.addAccounts(managedAccounts);
         @SuppressWarnings("rawtypes")
         CompletableFuture[] futs = new CompletableFuture[managedAccounts.size()];
         CompletableFuture.allOf(managedAccounts.values().stream().map(VertxAccount::getDeployFuture)
-            .collect(Collectors.toList())
-            .toArray(futs))
-            .whenComplete((v, e) -> {
-              if (e == null) {
-                trader.init();
-                config.getJsonArray("watches").stream().map(m -> (String) m)
-                    .forEach(m -> watches.computeIfAbsent(m, k -> new HashSet<>()).add(trader));
-                traderReady.complete(null);
-                log.info("Trader {} initialized with {} account(s) under management", config.getString("class"), managedAccounts.size());
-              }
-            });
+                .collect(Collectors.toList())
+                .toArray(futs))
+                .whenComplete((v, e) -> {
+                  if (e == null) {
+                    trader.init();
+                    config.getJsonArray("watches").stream().map(m -> (String) m)
+                            .forEach(m -> watches.computeIfAbsent(m, k -> new HashSet<>()).add(trader));
+                    traderReady.complete(null);
+                    log.info("Trader {} initialized with {} account(s) under management", config.getString("class"), managedAccounts.size());
+                  }
+                });
         allTradersReady[i] = traderReady;
       }
       CompletableFuture.allOf(allTradersReady).thenAccept(v -> {

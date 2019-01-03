@@ -25,7 +25,7 @@ public abstract class VertxAccount extends AbstractVerticle implements Account {
 
   private final CompletableFuture<Void> deployFuture = new CompletableFuture<>();
 
-  public abstract void config(JsonObject config);
+  public abstract void config(AccountConfiguration config);
 
   public abstract void init() throws Exception;
 

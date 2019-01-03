@@ -22,7 +22,11 @@ import lombok.Data;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
-import xyz.homebrew.core.*;
+import xyz.homebrew.core.Balance;
+import xyz.homebrew.core.Market;
+import xyz.homebrew.core.Order;
+import xyz.homebrew.core.Sdk;
+import xyz.homebrew.vertx.AccountConfiguration;
 import xyz.homebrew.vertx.VertxAccount;
 
 import java.io.IOException;
@@ -49,10 +53,10 @@ public class FCoinAccount extends VertxAccount {
   private Market hostingMarket;
 
   @Override
-  public void config(JsonObject config) {
-    key = config.getString("key");
-    secret = config.getString("secret");
-    contract = new Contract(config.getJsonObject("contract"));
+  public void config(AccountConfiguration config) {
+    key = config.getConfig().getString("key");
+    secret = config.getConfig().getString("secret");
+    contract = config.getContract();
   }
 
   @Override

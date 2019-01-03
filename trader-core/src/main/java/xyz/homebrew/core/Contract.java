@@ -1,6 +1,5 @@
 package xyz.homebrew.core;
 
-import io.vertx.core.json.JsonObject;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
@@ -19,11 +18,11 @@ public final class Contract {
 
   private final int scale;
 
-  public Contract(JsonObject config) {
-    quote = config.getString("quote");
-    base = config.getString("base");
-    amount = new BigDecimal(config.getFloat("amount"));
-    scale = config.getInteger("scale");
+  public Contract(String quote, String base, BigDecimal amount, int scale) {
+    this.quote = quote;
+    this.base = base;
+    this.amount = amount;
+    this.scale = scale;
   }
 
   public BigDecimal volume(BigDecimal price) {
