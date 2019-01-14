@@ -24,7 +24,7 @@ proxy:
 accounts:
   - type: fcoin
     id: fcoin_main
-    # contract is an abstraction of trading system and you can define it yourself.
+    # contract is an abstraction in the trading system and you can define it yourself.
     # You can only buy or sell 1 2 3.. pieces of contract, and each contract has {amount} (0.01) {base} btc.
     contract:
       base: btc
@@ -47,7 +47,7 @@ traders:
     # you can manage multiple accounts in a single trader
     accounts:
       - fcoin_main
-    # you can watch multiple markets not only you trade in
+    # you can subscribe multiple markets as reference
     watches:
       - fcoin
 
